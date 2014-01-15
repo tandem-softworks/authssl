@@ -1,16 +1,16 @@
 <?php
 /**
- * General tests for the authssl plugin
+ * Testing Plugin-Info for the authssl plugin
  *
  * @group plugin_authssl
  * @group plugins
  */
-class general_plugin_authssl_test extends DokuWikiTest {
+class plugininfo_plugin_authssl_test extends DokuWikiTest {
 
     /**
      * Simple test to make sure the plugin.info.txt is in correct format
      */
-    public function test_plugininfo() {
+    public function testPlugininfo() {
         $file = __DIR__.'/../plugin.info.txt';
         $this->assertFileExists($file);
 
