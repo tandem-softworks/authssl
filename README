@@ -1,9 +1,9 @@
 authssl Plugin for DokuWiki
 
-Authorization via SSL Client-Certificat
+Authentication via SSL Client-Certificate
 
 All documentation for this plugin can be found at
-https://gitubh.com/tandem-softworks/authssl
+https://github.com/tandem-softworks/authssl
 
 If you install this plugin manually, make sure it is installed in
 lib/plugins/authssl/ - if the folder is called different it

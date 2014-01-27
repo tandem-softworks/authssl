@@ -9,8 +9,8 @@ class action_plugin_authssl_active_test extends PluginAuthsslTest {
 
     function setUp() {
         parent::setUp();
-        $this->activate_authssl();
-        $this->reset_auth();
+        $this->activateAuthssl();
+        $this->resetAuth();
     }
 
     function getDisableactions() {

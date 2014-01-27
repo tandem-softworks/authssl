@@ -8,8 +8,8 @@ include_once('inc/PluginAuthsslTest.php');
 class auth_plugin_authssl_active_test extends PluginAuthsslTest {
     function setUp() {
         parent::setUp();
-        $this->activate_authssl();
-        $this->reset_auth();
+        $this->activateAuthssl();
+        $this->resetAuth();
     }
 
     static function tearDownAfterClass() {
@@ -34,9 +34,9 @@ class auth_plugin_authssl_active_test extends PluginAuthsslTest {
     function testAuthenticated() {
         $this->setServerSSL();
 
-        $this->reset_auth();
+        $this->resetAuth();
         $this->assertAuthPluginAuthssl();
-        $this->assertTrue($this->get_auth()->success);
+        $this->assertTrue($this->getAuth()->success);
 
         $request = new TestRequest();
         $request->setSession(DOKU_COOKIE,$_SESSION[DOKU_COOKIE]);
@@ -50,6 +50,6 @@ class auth_plugin_authssl_active_test extends PluginAuthsslTest {
     }
 
     function assertAuthPluginAuthssl() {
-        $this->assertInstanceOf('auth_plugin_authssl',$this->get_auth());
+        $this->assertInstanceOf('auth_plugin_authssl',$this->getAuth());
     }
 }

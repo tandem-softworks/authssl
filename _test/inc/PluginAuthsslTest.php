@@ -4,36 +4,36 @@ abstract class PluginAuthsslTest extends DokuWikiTest {
     function setUp() {
         $this->pluginsEnabled[] = 'authssl';
         parent::setUp();
-        $this->oldAuth = $this->get_auth();
+        $this->oldAuth = $this->getAuth();
     }
 
     function tearDown() {
-        $this->set_auth($this->oldAuth);
+        $this->setAuth($this->oldAuth);
     }
 
     static function restoreConf() {
         TestUtils::rcopy(TMP_DIR, DOKU_UNITTEST.'conf');
     }
 
-    function reset_auth() {
+    function resetAuth() {
         global $DOKU_PLUGINS;
         $DOKU_PLUGINS = NULL;
 
-        $this->set_auth(NULL);
+        $this->setAuth(NULL);
         auth_setup();
     }
 
-    function activate_authssl() {
+    function activateAuthssl() {
         global $conf;
         $conf['authtype'] = 'authssl';
     }
 
-    function get_auth() {
+    function getAuth() {
         global $auth;
         return $auth;
     }
 
-    function set_auth($value) {
+    function setAuth($value) {
         global $auth;
         $auth = $value;
     }

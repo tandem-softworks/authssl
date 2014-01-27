@@ -17,6 +17,7 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
      */
     public static function is_active() {
         global $auth;
+        if (!$auth) return false;
         $auth->isCaseSensitive();
         return ($auth === self::$instance);
     }
