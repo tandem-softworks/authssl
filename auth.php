@@ -31,21 +31,26 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
         parent::__construct(); // for compatibility
         self::$instance = $this;
 
-        // FIXME set capabilities accordingly
-        $this->cando['addUser']     = false; // can Users be created?
-        $this->cando['delUser']     = false; // can Users be deleted?
         $this->cando['modLogin']    = false; // can login names be changed?
         $this->cando['modPass']     = false; // can passwords be changed?
         $this->cando['modName']     = false; // can real names be changed?
         $this->cando['modMail']     = false; // can emails be changed?
-        $this->cando['modGroups']   = false; // can groups be changed?
-        $this->cando['getUsers']    = false; // can a (filtered) list of users be retrieved?
-        $this->cando['getUserCount']= false; // can the number of users be retrieved?
-        $this->cando['getGroups']   = false; // can a list of available groups be retrieved?
         $this->cando['external']    = false; // does the module do external auth checking?
         $this->cando['logout']      = false; // can the user logout again? (eg. not possible with HTTP auth)
         global $plugin_controller;
         $this->group_plugin = $plugin_controller->load('auth', $this->group_plugin_name);
+
+        if ($this->group_plugin) {
+            foreach (array('getUsers',
+                           'getUserCount',
+                           'addUser',
+                           'modLogin', // otherwise 'addUser' does not work
+                           'delUser',
+                           'modGroups',
+                           'getGroups') as $capability) {
+                $this->cando[$capability] = $this->group_plugin->canDo($capability);
+            }
+        }
         // intialize your auth system and set success to true, if successful
         if ($_SERVER['SSL_CLIENT_S_DN_userID'] == "") {
             msg($this->getLang('nocreds'), -1);
@@ -54,47 +59,10 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
         }
         else {
             $_SERVER['PHP_AUTH_USER'] = $_SERVER['SSL_CLIENT_S_DN_userID'];
-            $_SERVER['PHP_AUTH_PW'] = 'dummy';
+            $_SERVER['PHP_AUTH_PW'] = '';
         }
         $this->success = true;
     }
-
-
-    /**
-     * Log off the current user [ OPTIONAL ]
-     */
-    //public function logOff() {
-    //}
-
-    /**
-     * Do all authentication [ OPTIONAL ]
-     *
-     * @param   string  $user    Username
-     * @param   string  $pass    Cleartext Password
-     * @param   bool    $sticky  Cookie should not expire
-     * @return  bool             true on successful auth
-     */
-    //public function trustExternal($user, $pass, $sticky = false) {
-        /* some example:
-
-        global $USERINFO;
-        global $conf;
-        $sticky ? $sticky = true : $sticky = false; //sanity check
-
-        // do the checking here
-
-        // set the globals if authed
-        $USERINFO['name'] = 'FIXME';
-        $USERINFO['mail'] = 'FIXME';
-        $USERINFO['grps'] = array('FIXME');
-        $_SERVER['REMOTE_USER'] = $user;
-        $_SESSION[DOKU_COOKIE]['auth']['user'] = $user;
-        $_SESSION[DOKU_COOKIE]['auth']['pass'] = $pass;
-        $_SESSION[DOKU_COOKIE]['auth']['info'] = $USERINFO;
-        return true;
-
-        */
-    //}
 
     /**
      * Check user+password
@@ -123,22 +91,72 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
      * @return  array containing user data or false
      */
     public function getUserData($user) {
-        $group_plugin_info = $this->group_plugin->getUserData($user);
-        unset($group_plugin_info['pass']);
+        $group_plugin_info = $this->getGroupPluginUserData($user);
         if ($user == $_SERVER['SSL_CLIENT_S_DN_userID']) {
             $info['name'] = $_SERVER['SSL_CLIENT_S_DN_CN'];
             $info['mail'] = $_SERVER['SSL_CLIENT_S_DN_Email'];
-            $info['grps'] = $group_plugin_info['grps'];
-            $diff = array();
-            foreach ($info as $key => $value) {
-                if ($inf[$key] !== $group_plugin_info[$key]) $diff[$key] = $value;
+
+            if ($group_plugin_info === false) {
+                $this->createUser($user,NULL,$info['name'],$info['mail']);
+                $group_plugin_info = $this->getGroupPluginUserData($user);
             }
-            $this->group_plugin->modifyUser($user,$diff);
+            else {
+                $diff = array();
+                foreach ($info as $key => $value) {
+                    if ($value !== $group_plugin_info[$key]) $diff[$key] = $value;
+                }
+                $this->modifyUser($user,$diff);
+            }
+
+            $info['grps'] = $group_plugin_info ? $group_plugin_info['grps'] : array();
             return $info;
         }
         else {
+            unset($group_plugin_info['pass']);
             return $group_plugin_info;
         }
+    }
+
+    private function getGroupPluginUserData($user) {
+        return $this->delegate_to_group_plugin('getUserData',array($user),false);
+    }
+    /**
+     * Bulk retrieval of user data
+     *
+     */
+    public function retrieveUsers() {
+        return $this->delegate_to_group_plugin('retrieveUsers',func_get_args(),array());
+    }
+
+    /**
+     * Return a count of the number of user which meet $filter criteria
+     */
+    public function getUserCount() {
+        return $this->delegate_to_group_plugin('getUserCount',func_get_args(),0);
+    }
+
+    /**
+     * User management via delegation to $this->group_plugin
+     */
+    public function createUser() {
+        $args = func_get_args();
+        $args[1] = auth_pwgen($args[0]); // generate password - only used after switch to authplain
+        return $this->delegate_to_group_plugin('createUser',$args,NULL);
+    }
+    public function deleteUsers() {
+        return $this->delegate_to_group_plugin('deleteUsers',func_get_args(),0);
+    }
+    public function modifyUser() {
+        return $this->delegate_to_group_plugin('modifyUser',func_get_args(),false);
+    }
+
+    /**
+     * Delegation to $this->group_plugin
+     */
+    private function delegate_to_group_plugin($name,$args,$default_return) {
+        return $this->group_plugin ?
+            call_user_func_array(array($this->group_plugin,$name),$args) :
+            $default_return;
     }
 
     /**
