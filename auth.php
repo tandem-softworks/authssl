@@ -59,7 +59,7 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
         }
         else {
             $_SERVER['PHP_AUTH_USER'] = $_SERVER['SSL_CLIENT_S_DN_userID'];
-            $_SERVER['PHP_AUTH_PW'] = '';
+            $_SERVER['PHP_AUTH_PW'] = 'dummy';
         }
         $this->success = true;
     }
