@@ -4,4 +4,4 @@ email  joerg.schray@tandem-softworks.de
 date   2014-01-15
 name   authssl plugin
 desc   Authorization via SSL Client-Certificat
-url    https://gitubh.com/tandem-softworks/authssl
+url    https://github.com/tandem-softworks/authssl

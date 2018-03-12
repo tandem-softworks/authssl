@@ -52,13 +52,14 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
             }
         }
         // intialize your auth system and set success to true, if successful
-        if ($_SERVER['SSL_CLIENT_S_DN_userID'] == "") {
+        $ssl_client_uid = isset($_SERVER['SSL_CLIENT_S_DN_UID']) ? $_SERVER['SSL_CLIENT_S_DN_UID'] : $_SERVER['SSL_CLIENT_S_DN_userID'];
+        if ($ssl_client_uid == "") {
             msg($this->getLang('nocreds'), -1);
             $this->success = false;
             return;
         }
         else {
-            $_SERVER['PHP_AUTH_USER'] = $_SERVER['SSL_CLIENT_S_DN_userID'];
+            $_SERVER['PHP_AUTH_USER'] = $ssl_client_uid;
             $_SERVER['PHP_AUTH_PW'] = 'dummy';
         }
         $this->success = true;
