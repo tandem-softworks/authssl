@@ -3,7 +3,7 @@
  * DokuWiki Plugin authssl (Auth Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Jörg Schray <joerg.schray@tandem-softworks.de>
+ * @author  JÃ¶rg Schray <joerg.schray@tandem-softworks.de>
  */
 
 // must be run within Dokuwiki
@@ -24,6 +24,9 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
 
     private $group_plugin_name = 'authplain';
     private $group_plugin = NULL;
+    private $ssl_client_uid = "";
+    private $ssl_client_dn_cn = "";
+    private $ssl_client_dn_email = "";
     /**
      * Constructor.
      */
@@ -51,18 +54,28 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
                 $this->cando[$capability] = $this->group_plugin->canDo($capability);
             }
         }
+
         // intialize your auth system and set success to true, if successful
-        $ssl_client_uid = isset($_SERVER['SSL_CLIENT_S_DN_UID']) ? $_SERVER['SSL_CLIENT_S_DN_UID'] : $_SERVER['SSL_CLIENT_S_DN_userID'];
-        if ($ssl_client_uid == "") {
-            msg($this->getLang('nocreds'), -1);
-            $this->success = false;
-            return;
+        $this->ssl_client_uid = $this->get_ssl_client_uid();
+        if ($this->ssl_client_uid) {
+            $this->ssl_client_dn_cn = $_SERVER['SSL_CLIENT_S_DN_CN'];
+            $this->ssl_client_dn_email = $_SERVER['SSL_CLIENT_S_DN_Email'];
+            $_SERVER['PHP_AUTH_USER'] = $this->ssl_client_uid;
+            $_SERVER['PHP_AUTH_PW'] = 'dummy';
+            $this->success = true;
         }
         else {
-            $_SERVER['PHP_AUTH_USER'] = $ssl_client_uid;
-            $_SERVER['PHP_AUTH_PW'] = 'dummy';
+            msg($this->getLang('nocreds'), -1);
+            $this->success = false;
         }
-        $this->success = true;
+    }
+
+    private function get_ssl_client_uid() {
+        return (($_SERVER['REQUEST_SCHEME'] == 'https' || $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') ?
+                (isset($_SERVER['SSL_CLIENT_S_DN_UID']) ?
+                 $_SERVER['SSL_CLIENT_S_DN_UID'] :
+                 $_SERVER['SSL_CLIENT_S_DN_userID']) :
+                NULL);
     }
 
     /**
@@ -91,11 +104,11 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
      * @param   string $user the user name
      * @return  array containing user data or false
      */
-    public function getUserData($user) {
+    public function getUserData($user, $requireGroups = true) {
         $group_plugin_info = $this->getGroupPluginUserData($user);
-        if ($user == $_SERVER['SSL_CLIENT_S_DN_userID']) {
-            $info['name'] = $_SERVER['SSL_CLIENT_S_DN_CN'];
-            $info['mail'] = $_SERVER['SSL_CLIENT_S_DN_Email'];
+        if ($user == $this->ssl_client_uid) {
+            $info['name'] = $this->ssl_client_dn_cn;
+            $info['mail'] = $this->ssl_client_dn_email;
 
             if ($group_plugin_info === false) {
                 $this->createUser($user,NULL,$info['name'],$info['mail']);
@@ -125,29 +138,29 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
      * Bulk retrieval of user data
      *
      */
-    public function retrieveUsers() {
+    public function retrieveUsers($start = 0, $limit = 0, $filter = NULL) {
         return $this->delegate_to_group_plugin('retrieveUsers',func_get_args(),array());
     }
 
     /**
      * Return a count of the number of user which meet $filter criteria
      */
-    public function getUserCount() {
+    public function getUserCount($filter = array()) {
         return $this->delegate_to_group_plugin('getUserCount',func_get_args(),0);
     }
 
     /**
      * User management via delegation to $this->group_plugin
      */
-    public function createUser() {
+    public function createUser($user, $pass, $name, $mail, $grps = NULL) {
         $args = func_get_args();
         $args[1] = auth_pwgen($args[0]); // generate password - only used after switch to authplain
         return $this->delegate_to_group_plugin('createUser',$args,NULL);
     }
-    public function deleteUsers() {
+    public function deleteUsers($users) {
         return $this->delegate_to_group_plugin('deleteUsers',func_get_args(),0);
     }
-    public function modifyUser() {
+    public function modifyUser($user, $changes) {
         return $this->delegate_to_group_plugin('modifyUser',func_get_args(),false);
     }
 

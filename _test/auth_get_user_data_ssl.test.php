@@ -5,30 +5,20 @@ include_once('inc/PluginAuthsslTest.php');
  * @group plugins
  */
 
-class AuthPluginAuthsslGetUserDataTest extends PluginAuthsslTest {
+class AuthPluginAuthsslGetUserDataSSLTest extends PluginAuthsslTest {
     function setUp() {
         parent::setUp();
         $this->activateAuthssl();
-        $this->resetAuth();
     }
 
     function tearDown() {
+        $this->unsetServerSSL();
         $this->restoreConf();
-    }
-
-    function testGetUserDataForKnownUserWithoutSSL() {
-        $this->assertEquals(array('name' => 'Arthur Dent',
-                                  'mail' => 'arthur@example.com',
-                                  'grps' => array()),
-                            $this->getAuth()->getUserData('testuser'));
-    }
-
-    function testGetUserDataForUnknownUserWithoutSSL() {
-        $this->assertFalse($this->getAuth()->getUserData('apü90um ü039'));
     }
 
     function testGetUserDataForKnownUserWithSSL() {
         $this->setServerSSL();
+        $this->resetAuth();
         $this->assertEquals(array('name' => 'SSL User',
                                   'mail' => 'admin@te.st',
                                   'grps' => array()),
@@ -44,7 +34,8 @@ class AuthPluginAuthsslGetUserDataTest extends PluginAuthsslTest {
 
     function testGetUserDataForUnknownUserWithSSL() {
         $user_count = $this->getAuth()->getUserCount();
-        $this->setServerSSL('new_user');
+        $this->setServerSSL('new_user', true);
+        $this->resetAuth();
         $this->assertEquals(array('name' => 'SSL User',
                                   'mail' => 'admin@te.st',
                                   'grps' => array('user')),

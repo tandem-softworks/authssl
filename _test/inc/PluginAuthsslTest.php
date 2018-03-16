@@ -7,10 +7,12 @@ abstract class PluginAuthsslTest extends DokuWikiTest {
         $this->pluginsEnabled[] = 'authssl';
         parent::setUp();
         $this->oldAuth = $this->getAuth();
+        $this->unsetServerSSL();
     }
 
     function tearDown() {
         $this->setAuth($this->oldAuth);
+        $this->unsetServerSSL();
     }
 
     function assertCanDo() {
@@ -44,7 +46,15 @@ abstract class PluginAuthsslTest extends DokuWikiTest {
     }
 
     // SSL-Authentication-Data
-    function setServerSSL($user = 'testuser') {
+    function setServerSSL($user = 'testuser', $proxy = false) {
+        if ($proxy) {
+            $_SERVER['REQUEST_SCHEME'] = 'http';
+            $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
+        }
+        else {
+            $_SERVER['REQUEST_SCHEME'] = 'https';
+            unset($_SERVER['HTTP_X_FORWARDED_PROTO']);
+        }
         $_SERVER['SSL_CLIENT_S_DN_userID'] = $user;
         $_SERVER['SSL_CLIENT_S_DN_CN'] = 'SSL User';
         $_SERVER['SSL_CLIENT_S_DN_Email'] = 'admin@te.st';
@@ -54,6 +64,8 @@ abstract class PluginAuthsslTest extends DokuWikiTest {
         foreach(array_keys($_SERVER) as $key) {
             if (preg_match('/\ASSL/',$key)) unset($_SERVER[$key]);
         }
+        $_SERVER['REQUEST_SCHEME'] = 'http';
+        unset($_SERVER['HTTP_X_FORWARDED_PROTO']);
     }
 
     // Utility
