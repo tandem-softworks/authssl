@@ -71,7 +71,7 @@ class auth_plugin_authssl extends DokuWiki_Auth_Plugin {
     }
 
     private function get_ssl_client_uid() {
-        return (($_SERVER['REQUEST_SCHEME'] == 'https' || $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') ?
+        return (($_SERVER['HTTPS'] == 'on' || $_SERVER['REQUEST_SCHEME'] == 'https' || $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') ?
                 (isset($_SERVER['SSL_CLIENT_S_DN_UID']) ?
                  $_SERVER['SSL_CLIENT_S_DN_UID'] :
                  $_SERVER['SSL_CLIENT_S_DN_userID']) :
